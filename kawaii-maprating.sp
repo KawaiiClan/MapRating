@@ -144,7 +144,7 @@ public Action OpenRateMenu(int client, bool fromFinish)
 	hPanel.SetTitle(g_sCurrentMap);
 	
 	FormatEx(sDisplay, sizeof(sDisplay), "Rating: %s%i %s%s%s \n \nIs this a good map?",
-						g_iCurrentMapRating > 0 ? "+" : ""),
+						g_iCurrentMapRating > 0 ? "+" : "",
 						g_iCurrentMapRating,
 						g_iCurrentMapRates == 0 ? "" : "(",
 						g_iCurrentMapRates == 0 ? "" : s,
