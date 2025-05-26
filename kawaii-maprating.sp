@@ -152,8 +152,11 @@ public Action OpenRateMenu(int client, bool fromFinish)
 	
 	hPanel.DrawItem(sDisplay, ITEMDRAW_RAWLINE);
 	
-	hPanel.DrawItem("Yes", g_iRating[client] == 1 ? ITEMDRAW_DISABLED : ITEMDRAW_CONTROL);
-	hPanel.DrawItem("No \n ", g_iRating[client] == -1 ? ITEMDRAW_DISABLED : ITEMDRAW_CONTROL);
+	FormatEx(sDisplay, sizeof(sDisplay), "%sYes", fromFinish ? "" : (g_iRating[client] == 1 ? "[X] " : "[  ] "));
+	hPanel.DrawItem(sDisplay, g_iRating[client] == 1 ? ITEMDRAW_DISABLED : ITEMDRAW_CONTROL);
+	
+	FormatEx(sDisplay, sizeof(sDisplay), "%sNo", fromFinish ? "" : (g_iRating[client] == -1 ? "[X] " : "[  ] "));
+	hPanel.DrawItem(sDisplay, g_iRating[client] == -1 ? ITEMDRAW_DISABLED : ITEMDRAW_CONTROL);
 	
 	if(fromFinish)
 	{
