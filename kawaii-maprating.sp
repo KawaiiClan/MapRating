@@ -144,7 +144,7 @@ public Action OpenRateMenu(int client, bool fromFinish)
 	hPanel.SetTitle(g_sCurrentMap);
 	
 	FormatEx(sDisplay, sizeof(sDisplay), "Rating: %s%i %s%s%s \n \nIs this a good map?",
-						g_iCurrentMapRating < 0 ? "-" : (g_iCurrentMapRating > 0 ? "+" : ""),
+						g_iCurrentMapRating > 0 ? "+" : ""),
 						g_iCurrentMapRating,
 						g_iCurrentMapRates == 0 ? "" : "(",
 						g_iCurrentMapRates == 0 ? "" : s,
@@ -153,7 +153,7 @@ public Action OpenRateMenu(int client, bool fromFinish)
 	hPanel.DrawItem(sDisplay, ITEMDRAW_RAWLINE);
 	
 	hPanel.DrawItem("Yes", g_iRating[client] == 1 ? ITEMDRAW_DISABLED : ITEMDRAW_CONTROL);
-	hPanel.DrawItem("No", g_iRating[client] == -1 ? ITEMDRAW_DISABLED : ITEMDRAW_CONTROL);
+	hPanel.DrawItem("No \n ", g_iRating[client] == -1 ? ITEMDRAW_DISABLED : ITEMDRAW_CONTROL);
 	
 	if(fromFinish)
 	{
