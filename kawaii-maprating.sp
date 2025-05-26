@@ -140,15 +140,17 @@ public Action OpenRateMenu(int client, bool fromFinish)
 	char sDisplay[128];
 	char s[8];
 	IntToString(g_iCurrentMapRates, s, sizeof(s));
-	FormatEx(sDisplay, sizeof(sDisplay), "%s \nRating: %s%i %s%s%s \n \nIs this a good map? \n ",
-						g_sCurrentMap,
+	
+	hPanel.SetTitle(g_sCurrentMap);
+	
+	FormatEx(sDisplay, sizeof(sDisplay), "Rating: %s%i %s%s%s \n \nIs this a good map?",
 						g_iCurrentMapRating < 0 ? "-" : (g_iCurrentMapRating > 0 ? "+" : ""),
 						g_iCurrentMapRating,
 						g_iCurrentMapRates == 0 ? "" : "(",
 						g_iCurrentMapRates == 0 ? "" : s,
 						g_iCurrentMapRates == 0 ? "" : " Votes)");
 	
-	hPanel.SetTitle(sDisplay);
+	hPanel.DrawItem(sDisplay, ITEMDRAW_RAWLINE);
 	
 	hPanel.DrawItem("Yes", g_iRating[client] == 1 ? ITEMDRAW_DISABLED : ITEMDRAW_CONTROL);
 	hPanel.DrawItem("No", g_iRating[client] == -1 ? ITEMDRAW_DISABLED : ITEMDRAW_CONTROL);
