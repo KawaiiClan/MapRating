@@ -176,10 +176,6 @@ public int TopMapsMenuHandler(Menu menu, MenuAction action, int param1, int para
 
 		Nominate(param1, sMap);
 	}*/
-	if (action == MenuAction_End)
-	{
-		CloseHandle(menu);
-	}
 
 	return 0;
 }
