@@ -206,7 +206,7 @@ public Action OpenRateMenu(int client, bool fromFinish)
 						g_iCurrentMapRates == 0 ? "" : "(",
 						g_iCurrentMapRates == 0 ? "" : s,
 						g_iCurrentMapRates == 0 ? "" : " Vote",
-						g_iCurrentMapRates > 1 ? "s)" : ")");
+						g_iCurrentMapRates == 0 ? "" : (g_iCurrentMapRates > 1 ? "s)" : ")"));
 	
 	hPanel.DrawItem(sDisplay, ITEMDRAW_RAWLINE);
 	
