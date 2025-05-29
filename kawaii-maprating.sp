@@ -177,7 +177,7 @@ public int TopMapsMenuHandler(Menu menu, MenuAction action, int param1, int para
 		Nominate(param1, sMap);
 	}*/
 
-	return 0;
+	return Plugin_Handled;
 }
 
 public Action Command_Rate(int client, int args)
@@ -338,6 +338,7 @@ void SetClientRating(int client)
 	SQL_TQuery(g_hRatingDB, SQL_ErrorCheckCallBack, Query);
 	Shavit_PrintToChat(client, "Thanks for rating the map! Change your rating with %s!rate", gS_ChatStrings.sVariable);
 	GetCurrentMapRating();
+	GetTopMapRatings();
 }
 
 public void SQL_ErrorCheckCallBack(Handle owner, Handle hndl, const char[] error, any data)
