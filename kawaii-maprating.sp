@@ -8,6 +8,8 @@ chatstrings_t gS_ChatStrings;
 Handle g_hRatingDB = INVALID_HANDLE;
 Handle cDisableRating;
 
+Menu g_hTopMapsMenu;
+
 int g_iRating[MAXPLAYERS + 1];
 bool g_bDisableRating[MAXPLAYERS + 1] = {false, ...};
 char g_sCurrentMap[255];
@@ -29,10 +31,14 @@ public void OnPluginStart()
 	
 	RegConsoleCmd("sm_rate", Command_Rate, "Opens the map rating menu");
 	RegConsoleCmd("sm_rating", Command_Rate, "Opens the map rating menu");
+	RegConsoleCmd("sm_topmaps", OpenTopMapsMenu, "Opens the top maps menu");
+	RegConsoleCmd("sm_toprated", OpenTopMapsMenu, "Opens the top maps menu");
 	
 	Shavit_OnChatConfigLoaded();
 	
 	InitRatingDB(g_hRatingDB);
+	
+	GetTopMapRatings();
 	
 	for(int i = 1; i <= MaxClients; i++)
 	{
@@ -101,6 +107,37 @@ public void SQL_GetCurrentMapRating(Handle owner, Handle hndl, const char[] erro
 	}
 }
 
+void GetTopMapRatings()
+{
+	char Query[255];
+	Format(Query, sizeof(Query), "SELECT SUM(rating), COUNT(*), map FROM ratings GROUP BY map ORDER BY SUM(rating) DESC, COUNT(*) ASC LIMIT 50;");
+	SQL_TQuery(g_hRatingDB, SQL_GetTopMapRatings, Query);
+}
+
+public void SQL_GetTopMapRatings(Handle owner, Handle hndl, const char[] error, any data)
+{
+	delete g_hTopMapsMenu;
+	g_hTopMapsMenu = new Menu(TopMapsMenuHandler);
+
+	g_hTopMapsMenu.SetTitle("Top 50 Rated Maps \n ");
+	
+	if(SQL_GetRowCount(hndl) != 0)
+	{
+		while(SQL_FetchRow(hndl))
+		{
+			int iMapRating = SQL_FetchInt(hndl, 0);
+			int iMapRates = SQL_FetchInt(hndl, 1);
+			char sMap[255];
+			SQL_FetchString(hndl, 2, sMap, sizeof(sMap))
+			
+			char buf[255];
+			Format(buf, sizeof(buf), "(%s%i) %s (%i Votes)", iMapRating > 0 ? "+" : "", iMapRating, sMap, iMapRates);
+			
+			g_hTopMapsMenu.AddItem(sMap, buf, ITEMDRAW_DISABLED);
+		}
+	}
+}
+
 void GetClientRating(int client)
 {
 	char Query[255];
@@ -121,6 +158,30 @@ public void SQL_GetClientRating(Handle owner, Handle hndl, const char[] error, i
 			g_iRating[data] = SQL_FetchInt(hndl, 0);
 		}
 	}
+}
+
+public Action OpenTopMapsMenu(int client, int args)
+{
+	g_hTopMapsMenu.Display(client, MENU_TIME_FOREVER);
+	return Plugin_Handled;
+}
+
+public int TopMapsMenuHandler(Menu menu, MenuAction action, int param1, int param2)
+{
+	//TODO Create nominate forward to allow nominations from this menu
+	/*if(action == MenuAction_Select)
+	{
+		char sMap[PLATFORM_MAX_PATH];
+		menu.GetItem(param2, sMap, sizeof(sMap));
+
+		Nominate(param1, sMap);
+	}*/
+	if (action == MenuAction_End)
+	{
+		CloseHandle(menu);
+	}
+
+	return 0;
 }
 
 public Action Command_Rate(int client, int args)
