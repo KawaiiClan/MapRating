@@ -131,7 +131,7 @@ public void SQL_GetTopMapRatings(Handle owner, Handle hndl, const char[] error, 
 			SQL_FetchString(hndl, 2, sMap, sizeof(sMap))
 			
 			char buf[255];
-			Format(buf, sizeof(buf), "(%s%i) %s (%i Votes)", iMapRating > 0 ? "+" : "", iMapRating, sMap, iMapRates);
+			Format(buf, sizeof(buf), "(%s%i) %s (%i Vote%s)", iMapRating > 0 ? "+" : "", iMapRating, sMap, iMapRates, iMapRating > 1 ? "s" : "");
 			
 			g_hTopMapsMenu.AddItem(sMap, buf, ITEMDRAW_DISABLED);
 		}
@@ -200,12 +200,13 @@ public Action OpenRateMenu(int client, bool fromFinish)
 	
 	hPanel.SetTitle(g_sCurrentMap);
 	
-	FormatEx(sDisplay, sizeof(sDisplay), "Rating: %s%i %s%s%s \n \nIs this a good map?",
+	FormatEx(sDisplay, sizeof(sDisplay), "Rating: %s%i %s%s%s%s \n \nIs this a good map?",
 						g_iCurrentMapRating > 0 ? "+" : "",
 						g_iCurrentMapRating,
 						g_iCurrentMapRates == 0 ? "" : "(",
 						g_iCurrentMapRates == 0 ? "" : s,
-						g_iCurrentMapRates == 0 ? "" : " Votes)");
+						g_iCurrentMapRates == 0 ? "" : " Vote",
+						g_iCurrentMapRates > 1 ? "s)" : ")");
 	
 	hPanel.DrawItem(sDisplay, ITEMDRAW_RAWLINE);
 	
