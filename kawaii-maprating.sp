@@ -9,6 +9,7 @@ Handle g_hRatingDB = INVALID_HANDLE;
 Handle cDisableRating;
 
 Menu g_hTopMapsMenu;
+Menu g_hLowMapsMenu;
 
 int g_iRating[MAXPLAYERS + 1];
 bool g_bDisableRating[MAXPLAYERS + 1] = {false, ...};
@@ -33,12 +34,16 @@ public void OnPluginStart()
 	RegConsoleCmd("sm_rating", Command_Rate, "Opens the map rating menu");
 	RegConsoleCmd("sm_topmaps", OpenTopMapsMenu, "Opens the top maps menu");
 	RegConsoleCmd("sm_toprated", OpenTopMapsMenu, "Opens the top maps menu");
+	RegConsoleCmd("sm_worstmaps", OpenLowMapsMenu, "Opens the worst maps menu");
+	RegConsoleCmd("sm_bottommaps", OpenLowMapsMenu, "Opens the worst maps menu");
+	RegConsoleCmd("sm_worstrated", OpenLowMapsMenu, "Opens the worst maps menu");
+	RegConsoleCmd("sm_lowrated", OpenLowMapsMenu, "Opens the worst maps menu");
 	
 	Shavit_OnChatConfigLoaded();
 	
 	InitRatingDB(g_hRatingDB);
 	
-	GetTopMapRatings();
+	GetMapRatings();
 	
 	for(int i = 1; i <= MaxClients; i++)
 	{
@@ -107,17 +112,20 @@ public void SQL_GetCurrentMapRating(Handle owner, Handle hndl, const char[] erro
 	}
 }
 
-void GetTopMapRatings()
+void GetMapRatings()
 {
 	char Query[255];
 	Format(Query, sizeof(Query), "SELECT SUM(rating), COUNT(*), map FROM ratings GROUP BY map ORDER BY SUM(rating) DESC, COUNT(*) ASC LIMIT 50;");
 	SQL_TQuery(g_hRatingDB, SQL_GetTopMapRatings, Query);
+	
+	Format(Query, sizeof(Query), "SELECT SUM(rating), COUNT(*), map FROM ratings GROUP BY map ORDER BY SUM(rating) ASC, COUNT(*) DESC LIMIT 50;");
+	SQL_TQuery(g_hRatingDB, SQL_GetLowMapRatings, Query);
 }
 
 public void SQL_GetTopMapRatings(Handle owner, Handle hndl, const char[] error, any data)
 {
 	delete g_hTopMapsMenu;
-	g_hTopMapsMenu = new Menu(TopMapsMenuHandler);
+	g_hTopMapsMenu = new Menu(MapsMenuHandler);
 
 	g_hTopMapsMenu.SetTitle("Top 50 Rated Maps \n ");
 	
@@ -134,6 +142,30 @@ public void SQL_GetTopMapRatings(Handle owner, Handle hndl, const char[] error, 
 			Format(buf, sizeof(buf), "(%s%i) %s (%i Vote%s)", iMapRating > 0 ? "+" : "", iMapRating, sMap, iMapRates, iMapRating > 1 ? "s" : "");
 			
 			g_hTopMapsMenu.AddItem(sMap, buf, ITEMDRAW_DISABLED);
+		}
+	}
+}
+
+public void SQL_GetLowMapRatings(Handle owner, Handle hndl, const char[] error, any data)
+{
+	delete g_hLowMapsMenu;
+	g_hLowMapsMenu = new Menu(MapsMenuHandler);
+
+	g_hLowMapsMenu.SetTitle("Worst 50 Rated Maps \n ");
+	
+	if(SQL_GetRowCount(hndl) != 0)
+	{
+		while(SQL_FetchRow(hndl))
+		{
+			int iMapRating = SQL_FetchInt(hndl, 0);
+			int iMapRates = SQL_FetchInt(hndl, 1);
+			char sMap[255];
+			SQL_FetchString(hndl, 2, sMap, sizeof(sMap))
+			
+			char buf[255];
+			Format(buf, sizeof(buf), "(%s%i) %s (%i Vote%s)", iMapRating > 0 ? "+" : "", iMapRating, sMap, iMapRates, iMapRating > 1 ? "s" : "");
+			
+			g_hLowMapsMenu.AddItem(sMap, buf, ITEMDRAW_DISABLED);
 		}
 	}
 }
@@ -166,7 +198,13 @@ public Action OpenTopMapsMenu(int client, int args)
 	return Plugin_Handled;
 }
 
-public int TopMapsMenuHandler(Menu menu, MenuAction action, int param1, int param2)
+public Action OpenLowMapsMenu(int client, int args)
+{
+	g_hLowMapsMenu.Display(client, MENU_TIME_FOREVER);
+	return Plugin_Handled;
+}
+
+public int MapsMenuHandler(Menu menu, MenuAction action, int param1, int param2)
 {
 	//TODO Create nominate forward to allow nominations from this menu
 	/*if(action == MenuAction_Select)
@@ -339,7 +377,7 @@ void SetClientRating(int client)
 	SQL_TQuery(g_hRatingDB, SQL_ErrorCheckCallBack, Query);
 	Shavit_PrintToChat(client, "Thanks for rating the map! Change your rating with %s!rate", gS_ChatStrings.sVariable);
 	GetCurrentMapRating();
-	GetTopMapRatings();
+	GetMapRatings();
 }
 
 public void SQL_ErrorCheckCallBack(Handle owner, Handle hndl, const char[] error, any data)
