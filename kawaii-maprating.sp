@@ -33,6 +33,7 @@ public void OnPluginStart()
 	RegConsoleCmd("sm_rate", Command_Rate, "Opens the map rating menu");
 	RegConsoleCmd("sm_rating", Command_Rate, "Opens the map rating menu");
 	RegConsoleCmd("sm_topmaps", OpenTopMapsMenu, "Opens the top maps menu");
+	RegConsoleCmd("sm_bestmaps", OpenTopMapsMenu, "Opens the top maps menu");
 	RegConsoleCmd("sm_toprated", OpenTopMapsMenu, "Opens the top maps menu");
 	RegConsoleCmd("sm_worstmaps", OpenLowMapsMenu, "Opens the worst maps menu");
 	RegConsoleCmd("sm_bottommaps", OpenLowMapsMenu, "Opens the worst maps menu");
@@ -362,7 +363,7 @@ public int RateMenuHandler(Handle hPanel, MenuAction action, int client, int par
 
 public Action Shavit_OnFinishMessage(int client, bool &everyone, timer_snapshot_t snapshot, int overwrite, int rank, char[] message, int maxlen)
 {
-	if(!g_bDisableRating[client] && g_iRating[client] == 0)
+	if(snapshot.iTimerTrack == 0 && !g_bDisableRating[client] && g_iRating[client] == 0)
 	{
 		OpenRateMenu(client, true);
 	}
