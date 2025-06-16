@@ -6,13 +6,14 @@
 chatstrings_t gS_ChatStrings;
 
 Handle g_hRatingDB = INVALID_HANDLE;
-Handle cDisableRating;
+Handle g_cDisableRating;
 
-Menu g_hTopMapsMenu;
-Menu g_hLowMapsMenu;
+Menu g_hBestMapsMenu;
+Menu g_hWorstMapsMenu;
 
 int g_iRating[MAXPLAYERS + 1];
 bool g_bDisableRating[MAXPLAYERS + 1] = {false, ...};
+bool g_bFavorite[MAXPLAYERS + 1] = {false, ...};
 char g_sCurrentMap[255];
 int g_iCurrentMapRating = 0;
 int g_iCurrentMapRates = 0;
@@ -21,24 +22,35 @@ public Plugin myinfo =
 {
 	name = "Kawaii-MapRating",
 	author = "olivia",
-	description = "Allow players to rate maps",
+	description = "Allow players to rate and favorite maps",
 	version = "c:",
 	url = "https://KawaiiClan.com"
 }
 
 public void OnPluginStart()
 {
-	cDisableRating = RegClientCookie("noRating", "Disable rating survey", CookieAccess_Private);
+	g_cDisableRating = RegClientCookie("noRating", "Disable rating survey", CookieAccess_Private);
 	
 	RegConsoleCmd("sm_rate", Command_Rate, "Opens the map rating menu");
+	RegConsoleCmd("sm_ratemap", Command_Rate, "Opens the map rating menu");
 	RegConsoleCmd("sm_rating", Command_Rate, "Opens the map rating menu");
-	RegConsoleCmd("sm_topmaps", OpenTopMapsMenu, "Opens the top maps menu");
-	RegConsoleCmd("sm_bestmaps", OpenTopMapsMenu, "Opens the top maps menu");
-	RegConsoleCmd("sm_toprated", OpenTopMapsMenu, "Opens the top maps menu");
-	RegConsoleCmd("sm_worstmaps", OpenLowMapsMenu, "Opens the worst maps menu");
-	RegConsoleCmd("sm_bottommaps", OpenLowMapsMenu, "Opens the worst maps menu");
-	RegConsoleCmd("sm_worstrated", OpenLowMapsMenu, "Opens the worst maps menu");
-	RegConsoleCmd("sm_lowrated", OpenLowMapsMenu, "Opens the worst maps menu");
+	RegConsoleCmd("sm_favorite", Command_Favorite, "Add/remove a map to your favorites list");
+	RegConsoleCmd("sm_favoritemap", Command_Favorite, "Add/remove a map to your favorites list");
+	RegConsoleCmd("sm_unfavorite", Command_Favorite, "Add/remove a map to your favorites list");
+	RegConsoleCmd("sm_fav", Command_Favorite, "Add/remove a map to your favorites list");
+	RegConsoleCmd("sm_favmap", Command_Favorite, "Add/remove a map to your favorites list");
+	RegConsoleCmd("sm_unfav", Command_Favorite, "Add/remove a map to your favorites list");
+	RegConsoleCmd("sm_favorites", Command_OpenFavoritesMenu, "Open your favorites list");
+	RegConsoleCmd("sm_favoritemaps", Command_OpenFavoritesMenu, "Open your favorites list");
+	RegConsoleCmd("sm_favs", Command_OpenFavoritesMenu, "Open your favorites list");
+	RegConsoleCmd("sm_favmaps", Command_OpenFavoritesMenu, "Open your favorites list");
+	RegConsoleCmd("sm_topmaps", Command_OpenBestMapsMenu, "Opens the best maps menu");
+	RegConsoleCmd("sm_bestmaps", Command_OpenBestMapsMenu, "Opens the best maps menu");
+	RegConsoleCmd("sm_toprated", Command_OpenBestMapsMenu, "Opens the best maps menu");
+	RegConsoleCmd("sm_worstmaps", Command_OpenWorstMapsMenu, "Opens the worst maps menu");
+	RegConsoleCmd("sm_bottommaps", Command_OpenWorstMapsMenu, "Opens the worst maps menu");
+	RegConsoleCmd("sm_worstrated", Command_OpenWorstMapsMenu, "Opens the worst maps menu");
+	RegConsoleCmd("sm_lowrated", Command_OpenWorstMapsMenu, "Opens the worst maps menu");
 	
 	Shavit_OnChatConfigLoaded();
 	
@@ -59,6 +71,7 @@ public void Shavit_OnChatConfigLoaded()
 {
 	Shavit_GetChatStrings(sMessageText, gS_ChatStrings.sText, sizeof(chatstrings_t::sText));
 	Shavit_GetChatStrings(sMessageVariable, gS_ChatStrings.sVariable, sizeof(chatstrings_t::sVariable));
+	Shavit_GetChatStrings(sMessageWarning, gS_ChatStrings.sWarning, sizeof(chatstrings_t::sWarning));
 }
 
 public void OnMapStart()
@@ -70,8 +83,9 @@ public void OnMapStart()
 public void OnClientPutInServer(int client)
 {
 	GetClientRating(client);
+	GetClientFavorite(client);
 	char cookie[12];
-	GetClientCookie(client, cDisableRating, cookie, sizeof(cookie))
+	GetClientCookie(client, g_cDisableRating, cookie, sizeof(cookie))
 	g_bDisableRating[client] = view_as<bool>(StringToInt(cookie));
 }
 
@@ -87,6 +101,7 @@ public Action InitRatingDB(Handle &DbHNDL)
 	else
 	{
 		SQL_TQuery(g_hRatingDB, SQL_ErrorCheckCallBack, "CREATE TABLE IF NOT EXISTS `ratings` (`map` varchar(100) NOT NULL, `auth` int NOT NULL, `rating` int NOT NULL, UNIQUE KEY `unique_index` (`map`,`auth`)) ENGINE=INNODB;");
+		SQL_TQuery(g_hRatingDB, SQL_ErrorCheckCallBack, "CREATE TABLE IF NOT EXISTS `favorites` (`map` varchar(100) NOT NULL, `auth` int NOT NULL, UNIQUE KEY `unique_index` (`map`,`auth`)) ENGINE=INNODB;");
 	}
 	
 	return Plugin_Handled;
@@ -117,18 +132,18 @@ void GetMapRatings()
 {
 	char Query[255];
 	Format(Query, sizeof(Query), "SELECT SUM(rating), COUNT(*), map FROM ratings GROUP BY map ORDER BY SUM(rating) DESC, COUNT(*) ASC LIMIT 50;");
-	SQL_TQuery(g_hRatingDB, SQL_GetTopMapRatings, Query);
+	SQL_TQuery(g_hRatingDB, SQL_GetBestMapRatings, Query);
 	
 	Format(Query, sizeof(Query), "SELECT SUM(rating), COUNT(*), map FROM ratings GROUP BY map ORDER BY SUM(rating) ASC, COUNT(*) DESC LIMIT 50;");
-	SQL_TQuery(g_hRatingDB, SQL_GetLowMapRatings, Query);
+	SQL_TQuery(g_hRatingDB, SQL_GetWorstMapRatings, Query);
 }
 
-public void SQL_GetTopMapRatings(Handle owner, Handle hndl, const char[] error, any data)
+public void SQL_GetBestMapRatings(Handle owner, Handle hndl, const char[] error, any data)
 {
-	delete g_hTopMapsMenu;
-	g_hTopMapsMenu = new Menu(MapsMenuHandler);
+	delete g_hBestMapsMenu;
+	g_hBestMapsMenu = new Menu(MapsMenuHandler);
 
-	g_hTopMapsMenu.SetTitle("Top 50 Rated Maps \n ");
+	g_hBestMapsMenu.SetTitle("Top 50 Rated Maps \n ");
 	
 	if(SQL_GetRowCount(hndl) != 0)
 	{
@@ -142,17 +157,17 @@ public void SQL_GetTopMapRatings(Handle owner, Handle hndl, const char[] error, 
 			char buf[255];
 			Format(buf, sizeof(buf), "(%s%i) %s (%i Vote%s)", iMapRating > 0 ? "+" : "", iMapRating, sMap, iMapRates, iMapRating > 1 ? "s" : "");
 			
-			g_hTopMapsMenu.AddItem(sMap, buf, ITEMDRAW_DISABLED);
+			g_hBestMapsMenu.AddItem(sMap, buf, ITEMDRAW_DISABLED);
 		}
 	}
 }
 
-public void SQL_GetLowMapRatings(Handle owner, Handle hndl, const char[] error, any data)
+public void SQL_GetWorstMapRatings(Handle owner, Handle hndl, const char[] error, any data)
 {
-	delete g_hLowMapsMenu;
-	g_hLowMapsMenu = new Menu(MapsMenuHandler);
+	delete g_hWorstMapsMenu;
+	g_hWorstMapsMenu = new Menu(MapsMenuHandler);
 
-	g_hLowMapsMenu.SetTitle("Worst 50 Rated Maps \n ");
+	g_hWorstMapsMenu.SetTitle("Worst 50 Rated Maps \n ");
 	
 	if(SQL_GetRowCount(hndl) != 0)
 	{
@@ -166,7 +181,7 @@ public void SQL_GetLowMapRatings(Handle owner, Handle hndl, const char[] error, 
 			char buf[255];
 			Format(buf, sizeof(buf), "(%s%i) %s (%i Vote%s)", iMapRating > 0 ? "+" : "", iMapRating, sMap, iMapRates, iMapRating > 1 ? "s" : "");
 			
-			g_hLowMapsMenu.AddItem(sMap, buf, ITEMDRAW_DISABLED);
+			g_hWorstMapsMenu.AddItem(sMap, buf, ITEMDRAW_DISABLED);
 		}
 	}
 }
@@ -193,16 +208,70 @@ public void SQL_GetClientRating(Handle owner, Handle hndl, const char[] error, i
 	}
 }
 
-public Action OpenTopMapsMenu(int client, int args)
+void GetClientFavorite(int client)
 {
-	g_hTopMapsMenu.Display(client, MENU_TIME_FOREVER);
+	char Query[255];
+	
+	Format(Query, sizeof(Query), "SELECT * FROM favorites WHERE auth = '%i' AND map = '%s';", GetSteamAccountID(client), g_sCurrentMap);
+	
+	SQL_TQuery(g_hRatingDB, SQL_GetClientFavorite, Query, client);
+}
+
+public void SQL_GetClientFavorite(Handle owner, Handle hndl, const char[] error, int data)
+{
+	if(SQL_GetRowCount(hndl) > 0)
+		g_bFavorite[data] = true;
+	else
+		g_bFavorite[data] = false;
+}
+
+public Action Command_OpenBestMapsMenu(int client, int args)
+{
+	g_hBestMapsMenu.Display(client, MENU_TIME_FOREVER);
 	return Plugin_Handled;
 }
 
-public Action OpenLowMapsMenu(int client, int args)
+public Action Command_OpenWorstMapsMenu(int client, int args)
 {
-	g_hLowMapsMenu.Display(client, MENU_TIME_FOREVER);
+	g_hWorstMapsMenu.Display(client, MENU_TIME_FOREVER);
 	return Plugin_Handled;
+}
+
+public Action Command_OpenFavoritesMenu(int client, int args)
+{
+	GetClientFavorites(client);
+	return Plugin_Handled;
+}
+
+void GetClientFavorites(client)
+{
+	char Query[255];
+	
+	Format(Query, sizeof(Query), "SELECT map FROM favorites WHERE auth = '%i' ORDER BY map ASC;", GetSteamAccountID(client));
+	
+	SQL_TQuery(g_hRatingDB, SQL_GetClientFavorites, Query, client);
+}
+
+public void SQL_GetClientFavorites(Handle owner, Handle hndl, const char[] error, any data)
+{
+	menu = new Menu(MapsMenuHandler);
+
+	menu.SetTitle("Favorite Maps \n ");
+	
+	if(SQL_GetRowCount(hndl) != 0)
+	{
+		while(SQL_FetchRow(hndl))
+		{
+			char sMap[255];
+			SQL_FetchString(hndl, 0, sMap, sizeof(sMap))
+			
+			menu.AddItem(sMap, sMap, ITEMDRAW_DISABLED);
+		}
+	}
+	else
+		menu.AddItem("none", "None found", ITEMDRAW_DISABLED);
+	
+	menu.Display(client, MENU_TIME_FOREVER);
 }
 
 public int MapsMenuHandler(Menu menu, MenuAction action, int param1, int param2)
@@ -227,6 +296,17 @@ public Action Command_Rate(int client, int args)
 	}
 
 	OpenRateMenu(client, false);
+	return Plugin_Handled;
+}
+
+public Action Command_Favorite(int client, int args)
+{
+	if(client == 0)
+		ReplyToCommand(client, "This command may be only performed in game");
+
+	g_bFavorite[client] = !g_bFavorite[client];
+	SetClientFavorite(client);
+	Shavit_PrintToChat(client, "Map %s%s %shas been %s%s %sfrom your %s!favorites", gS_ChatStrings.sVariable, g_sCurrentMap, gS_ChatStrings.sText, g_bFavorite[client] ? gS_ChatStrings.sVariable : gS_ChatStrings.sWarning, g_bFavorite[client] ? "added" : "removed", gS_ChatStrings.sText, gS_ChatStrings.sVariable);
 	return Plugin_Handled;
 }
 
@@ -255,21 +335,17 @@ public Action OpenRateMenu(int client, bool fromFinish)
 	FormatEx(sDisplay, sizeof(sDisplay), "%sNo", fromFinish ? "" : (g_iRating[client] == -1 ? "[X] " : "[  ] "));
 	hPanel.DrawItem(sDisplay, g_iRating[client] == -1 ? ITEMDRAW_DISABLED : ITEMDRAW_CONTROL);
 	
-	if(fromFinish)
-	{
-		SetPanelCurrentKey(hPanel, 4);
-		
-		hPanel.DrawItem("Don't ask again :c", ITEMDRAW_CONTROL);
+	hPanel.DrawItem("", ITEMDRAW_RAWLINE);
 	
-		hPanel.DrawItem("", ITEMDRAW_SPACER);
-	}
-	else
-	{
-		FormatEx(sDisplay, 64, "[%s] Ask on unrated map finish", g_bDisableRating[client] ? "  " : "X");
-		hPanel.DrawItem(sDisplay, ITEMDRAW_CONTROL);
+	FormatEx(sDisplay, sizeof(sDisplay), "%sFavorite Map", g_bFavorite[client] == true ? "[X] " : "[  ] ");
+	hPanel.DrawItem(sDisplay, ITEMDRAW_CONTROL);
 	
-		hPanel.DrawItem("", ITEMDRAW_SPACER);
-	}
+	hPanel.DrawItem("", ITEMDRAW_RAWLINE);
+	
+	FormatEx(sDisplay, sizeof(sDisplay), "%sOpen !rate menu on unrated map finish", g_bDisableRating[client] ? "[  ] " : "[X] ");
+	hPanel.DrawItem(sDisplay, ITEMDRAW_CONTROL);
+	
+	hPanel.DrawItem("", ITEMDRAW_RAWLINE);
 	
 	SetPanelCurrentKey(hPanel, 10);
 	
@@ -327,24 +403,22 @@ public int RateMenuHandler(Handle hPanel, MenuAction action, int client, int par
 				{
 					if(IsValidClient(client))
 					{
-						EmitSoundToClient(client, "buttons/combine_button7.wav");
-						g_bDisableRating[client] = !g_bDisableRating[client];
-						char s[2];
-						IntToString(view_as<int>(g_bDisableRating[client]), s, sizeof(s));
-						SetClientCookie(client, cDisableRating, s);
-						OpenRateMenu(client, false);
+						EmitSoundToClient(client, "buttons/button14.wav");
+						g_bFavorite[client] = !g_bFavorite[client];
+						SetClientFavorite(client);
+						OpenRateMenu(client);
 					}
 				}
 				case 4:
 				{
 					if(IsValidClient(client))
 					{
-						EmitSoundToClient(client, "buttons/combine_button7.wav");
+						EmitSoundToClient(client, "buttons/combine_button14.wav");
 						g_bDisableRating[client] = !g_bDisableRating[client];
 						char s[2];
 						IntToString(view_as<int>(g_bDisableRating[client]), s, sizeof(s));
-						SetClientCookie(client, cDisableRating, s);
-						Shavit_PrintToChat(client, "No longer showing %s!rate %smenu on map finish!", gS_ChatStrings.sVariable, gS_ChatStrings.sText)
+						SetClientCookie(client, g_cDisableRating, s);
+						OpenRateMenu(client, false);
 					}
 				}
 				case 10:
@@ -379,6 +453,19 @@ void SetClientRating(int client)
 	Shavit_PrintToChat(client, "Thanks for rating the map! Change your rating with %s!rate", gS_ChatStrings.sVariable);
 	GetCurrentMapRating();
 	GetMapRatings();
+}
+
+void SetClientFavorite(int client)
+{
+	int iSteamID = GetSteamAccountID(client);
+	char Query[500];
+	
+	if(g_bFavorite[client])
+		Format(Query, sizeof(Query), "INSERT INTO favorites (map, auth) VALUES('%s', %i);", g_sCurrentMap, iSteamID);
+	else
+		Format(Query, sizeof(Query), "DELETE FROM favorites WHERE map = '%s' AND auth = %i;", g_sCurrentMap, iSteamID);
+		
+	SQL_TQuery(g_hRatingDB, SQL_ErrorCheckCallBack, Query);
 }
 
 public void SQL_ErrorCheckCallBack(Handle owner, Handle hndl, const char[] error, any data)
