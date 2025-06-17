@@ -254,7 +254,7 @@ void GetClientFavorites(client)
 
 public void SQL_GetClientFavorites(Handle owner, Handle hndl, const char[] error, any data)
 {
-	menu = new Menu(MapsMenuHandler);
+	Menu menu = new Menu(MapsMenuHandler);
 
 	menu.SetTitle("Favorite Maps \n ");
 	
@@ -271,7 +271,7 @@ public void SQL_GetClientFavorites(Handle owner, Handle hndl, const char[] error
 	else
 		menu.AddItem("none", "None found", ITEMDRAW_DISABLED);
 	
-	menu.Display(client, MENU_TIME_FOREVER);
+	menu.Display(data, MENU_TIME_FOREVER);
 }
 
 public int MapsMenuHandler(Menu menu, MenuAction action, int param1, int param2)
@@ -306,7 +306,7 @@ public Action Command_Favorite(int client, int args)
 
 	g_bFavorite[client] = !g_bFavorite[client];
 	SetClientFavorite(client);
-	Shavit_PrintToChat(client, "Map %s%s %shas been %s%s %sfrom your %s!favorites", gS_ChatStrings.sVariable, g_sCurrentMap, gS_ChatStrings.sText, g_bFavorite[client] ? gS_ChatStrings.sVariable : gS_ChatStrings.sWarning, g_bFavorite[client] ? "added" : "removed", gS_ChatStrings.sText, gS_ChatStrings.sVariable);
+	Shavit_PrintToChat(client, "Map %s%s %shas been %s%s %s%s your %s!favorites", gS_ChatStrings.sVariable, g_sCurrentMap, gS_ChatStrings.sText, g_bFavorite[client] ? gS_ChatStrings.sVariable : gS_ChatStrings.sWarning, g_bFavorite[client] ? "added" : "removed", gS_ChatStrings.sText, g_bFavorite[client] ? "to" : "from", gS_ChatStrings.sVariable);
 	return Plugin_Handled;
 }
 
@@ -335,17 +335,17 @@ public Action OpenRateMenu(int client, bool fromFinish)
 	FormatEx(sDisplay, sizeof(sDisplay), "%sNo", fromFinish ? "" : (g_iRating[client] == -1 ? "[X] " : "[  ] "));
 	hPanel.DrawItem(sDisplay, g_iRating[client] == -1 ? ITEMDRAW_DISABLED : ITEMDRAW_CONTROL);
 	
-	hPanel.DrawItem("", ITEMDRAW_RAWLINE);
+	hPanel.DrawItem(" ", ITEMDRAW_RAWLINE);
 	
 	FormatEx(sDisplay, sizeof(sDisplay), "%sFavorite Map", g_bFavorite[client] == true ? "[X] " : "[  ] ");
 	hPanel.DrawItem(sDisplay, ITEMDRAW_CONTROL);
 	
-	hPanel.DrawItem("", ITEMDRAW_RAWLINE);
+	hPanel.DrawItem(" ", ITEMDRAW_RAWLINE);
 	
 	FormatEx(sDisplay, sizeof(sDisplay), "%sOpen !rate menu on unrated map finish", g_bDisableRating[client] ? "[  ] " : "[X] ");
 	hPanel.DrawItem(sDisplay, ITEMDRAW_CONTROL);
 	
-	hPanel.DrawItem("", ITEMDRAW_RAWLINE);
+	hPanel.DrawItem(" ", ITEMDRAW_RAWLINE);
 	
 	SetPanelCurrentKey(hPanel, 10);
 	
@@ -406,7 +406,7 @@ public int RateMenuHandler(Handle hPanel, MenuAction action, int client, int par
 						EmitSoundToClient(client, "buttons/button14.wav");
 						g_bFavorite[client] = !g_bFavorite[client];
 						SetClientFavorite(client);
-						OpenRateMenu(client);
+						OpenRateMenu(client, false);
 					}
 				}
 				case 4:
@@ -461,7 +461,7 @@ void SetClientFavorite(int client)
 	char Query[500];
 	
 	if(g_bFavorite[client])
-		Format(Query, sizeof(Query), "INSERT INTO favorites (map, auth) VALUES('%s', %i);", g_sCurrentMap, iSteamID);
+		Format(Query, sizeof(Query), "INSERT INTO favorites (map, auth) VALUES('%s', %i) ON DUPLICATE KEY UPDATE auth = VALUES(auth);", g_sCurrentMap, iSteamID);
 	else
 		Format(Query, sizeof(Query), "DELETE FROM favorites WHERE map = '%s' AND auth = %i;", g_sCurrentMap, iSteamID);
 		
