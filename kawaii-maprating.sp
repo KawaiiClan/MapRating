@@ -337,7 +337,7 @@ public Action OpenRateMenu(int client, bool fromFinish)
 	
 	hPanel.DrawItem(" ", ITEMDRAW_RAWLINE);
 	
-	FormatEx(sDisplay, sizeof(sDisplay), "%sFavorite Map", g_bFavorite[client] == true ? "[X] " : "[  ] ");
+	FormatEx(sDisplay, sizeof(sDisplay), "%sAdd to !favorites", g_bFavorite[client] == true ? "[X] " : "[  ] ");
 	hPanel.DrawItem(sDisplay, ITEMDRAW_CONTROL);
 	
 	hPanel.DrawItem(" ", ITEMDRAW_RAWLINE);
