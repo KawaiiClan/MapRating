@@ -11,9 +11,15 @@ Handle g_cDisableRating;
 Menu g_hBestMapsMenu;
 Menu g_hWorstMapsMenu;
 
+ArrayList g_aMapList;
+
 int g_iRating[MAXPLAYERS + 1];
+
 bool g_bDisableRating[MAXPLAYERS + 1] = {false, ...};
 bool g_bFavorite[MAXPLAYERS + 1] = {false, ...};
+
+bool g_bMapChooser = false;
+
 char g_sCurrentMap[255];
 int g_iCurrentMapRating = 0;
 int g_iCurrentMapRates = 0;
@@ -58,12 +64,37 @@ public void OnPluginStart()
 	
 	GetMapRatings();
 	
+	g_bMapChooser = LibraryExists("shavit-mapchooser");
+	
+	g_aMapList = new ArrayList(ByteCountToCells(PLATFORM_MAX_PATH));
+	
+	if(g_bMapChooser)
+		g_aMapList = Shavit_GetMapsArrayList();
+	
 	for(int i = 1; i <= MaxClients; i++)
 	{
 		if(IsClientConnected(i) && !IsFakeClient(i))
 		{
 			OnClientPutInServer(i);
 		}
+	}
+}
+
+public void OnLibraryAdded(const char[] name)
+{
+	if(StrEqual(name, "shavit-mapchooser"))
+	{
+		g_bMapChooser = true;
+		g_aMapList = Shavit_GetMapsArrayList();
+	}
+}
+
+public void OnLibraryRemoved(const char[] name)
+{
+	if(StrEqual(name, "shavit-mapchooser"))
+	{
+		g_bMapChooser = false;
+		g_aMapList.Clear();
 	}
 }
 
