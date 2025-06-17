@@ -14,4 +14,4 @@ Use data for random map cycle influence, or anything else
 - !worstmaps - See the lowest rated maps on the server.
 <p>The menu also appears when a player finishes the map (if no rating has been submitted, or if the option has been disabled by the player)<br>
 
-![image](https://github.com/user-attachments/assets/bccc4665-13ce-4275-827f-fb49f7c84a2a)
+![image](https://github.com/user-attachments/assets/f060e7d2-18ae-4261-90c0-adaa71576bbb)
