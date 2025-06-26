@@ -186,7 +186,7 @@ public void SQL_GetBestMapRatings(Handle owner, Handle hndl, const char[] error,
 			SQL_FetchString(hndl, 2, sMap, sizeof(sMap))
 			
 			char buf[255];
-			Format(buf, sizeof(buf), "(%s%i) %s (%i Vote%s)", iMapRating > 0 ? "+" : "", iMapRating, sMap, iMapRates, iMapRating > 1 ? "s" : "");
+			Format(buf, sizeof(buf), "(%s%i) %s (%i Vote%s)", iMapRating > 0 ? "+" : "", iMapRating, sMap, iMapRates, iMapRates > 1 ? "s" : "");
 			
 			g_hBestMapsMenu.AddItem(sMap, buf, ITEMDRAW_DISABLED);
 		}
@@ -210,7 +210,7 @@ public void SQL_GetWorstMapRatings(Handle owner, Handle hndl, const char[] error
 			SQL_FetchString(hndl, 2, sMap, sizeof(sMap))
 			
 			char buf[255];
-			Format(buf, sizeof(buf), "(%s%i) %s (%i Vote%s)", iMapRating > 0 ? "+" : "", iMapRating, sMap, iMapRates, iMapRating > 1 ? "s" : "");
+			Format(buf, sizeof(buf), "(%s%i) %s (%i Vote%s)", iMapRating > 0 ? "+" : "", iMapRating, sMap, iMapRates, iMapRates > 1 ? "s" : "");
 			
 			g_hWorstMapsMenu.AddItem(sMap, buf, ITEMDRAW_DISABLED);
 		}
