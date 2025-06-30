@@ -444,7 +444,7 @@ public int RateMenuHandler(Handle hPanel, MenuAction action, int client, int par
 				{
 					if(IsValidClient(client))
 					{
-						EmitSoundToClient(client, "buttons/combine_button14.wav");
+						EmitSoundToClient(client, "buttons/combine_button7.wav");
 						g_bDisableRating[client] = !g_bDisableRating[client];
 						char s[2];
 						IntToString(view_as<int>(g_bDisableRating[client]), s, sizeof(s));
