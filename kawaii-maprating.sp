@@ -14,14 +14,15 @@ Menu g_hWorstMapsMenu;
 ArrayList g_aMapList;
 
 int g_iRating[MAXPLAYERS + 1];
+int g_iEditRating[MAXPLAYERS + 1];
 
 bool g_bDisableRating[MAXPLAYERS + 1] = {false, ...};
 bool g_bFavorite[MAXPLAYERS + 1] = {false, ...};
 
 bool g_bMapChooser = false;
 
-char g_sCurrentMap[255];
-int g_iCurrentMapRating = 0;
+char g_sCurrentMap[PLATFORM_MAX_PATH];
+float g_fCurrentMapAvgRating = 0.0;
 int g_iCurrentMapRates = 0;
 
 public Plugin myinfo =
@@ -71,13 +72,6 @@ public void OnPluginStart()
 	if(g_bMapChooser)
 		g_aMapList = Shavit_GetMapsArrayList();
 	
-	for(int i = 1; i <= MaxClients; i++)
-	{
-		if(IsClientConnected(i) && !IsFakeClient(i))
-		{
-			OnClientPutInServer(i);
-		}
-	}
 }
 
 public void OnLibraryAdded(const char[] name)
@@ -111,7 +105,7 @@ public void OnMapStart()
 	GetCurrentMapRating();
 }
 
-public void OnClientPutInServer(int client)
+public void OnClientAuthorized(int client, const char[] auth)
 {
 	GetClientRating(client);
 	GetClientFavorite(client);
@@ -141,19 +135,19 @@ public Action InitRatingDB(Handle &DbHNDL)
 void GetCurrentMapRating()
 {
 	char Query[255];
-	Format(Query, sizeof(Query), "SELECT SUM(rating), COUNT(*) FROM ratings WHERE map = '%s';", g_sCurrentMap);
+	Format(Query, sizeof(Query), "SELECT Avg(rating), COUNT(*) FROM ratings WHERE map = '%s';", g_sCurrentMap);
 	SQL_TQuery(g_hRatingDB, SQL_GetCurrentMapRating, Query);
 }
 
 public void SQL_GetCurrentMapRating(Handle owner, Handle hndl, const char[] error, any data)
 {
-	g_iCurrentMapRating = 0;
+	g_fCurrentMapAvgRating = 0.0;
 	
 	if(SQL_GetRowCount(hndl) != 0)
 	{
 		while(SQL_FetchRow(hndl))
 		{
-			g_iCurrentMapRating = SQL_FetchInt(hndl, 0);
+			g_fCurrentMapAvgRating = SQL_FetchFloat(hndl, 0);
 			g_iCurrentMapRates = SQL_FetchInt(hndl, 1);
 		}
 	}
@@ -162,10 +156,10 @@ public void SQL_GetCurrentMapRating(Handle owner, Handle hndl, const char[] erro
 void GetMapRatings()
 {
 	char Query[255];
-	Format(Query, sizeof(Query), "SELECT SUM(rating), COUNT(*), map FROM ratings GROUP BY map ORDER BY SUM(rating) DESC, COUNT(*) ASC LIMIT 50;");
+	Format(Query, sizeof(Query), "SELECT AVG(rating), COUNT(*), map FROM ratings GROUP BY map ORDER BY SUM(rating) DESC, COUNT(*) ASC LIMIT 50;");
 	SQL_TQuery(g_hRatingDB, SQL_GetBestMapRatings, Query);
 	
-	Format(Query, sizeof(Query), "SELECT SUM(rating), COUNT(*), map FROM ratings GROUP BY map ORDER BY SUM(rating) ASC, COUNT(*) DESC LIMIT 50;");
+	Format(Query, sizeof(Query), "SELECT AVG(rating), COUNT(*), map FROM ratings GROUP BY map ORDER BY SUM(rating) ASC, COUNT(*) DESC LIMIT 50;");
 	SQL_TQuery(g_hRatingDB, SQL_GetWorstMapRatings, Query);
 }
 
@@ -174,21 +168,21 @@ public void SQL_GetBestMapRatings(Handle owner, Handle hndl, const char[] error,
 	delete g_hBestMapsMenu;
 	g_hBestMapsMenu = new Menu(MapsMenuHandler);
 
-	g_hBestMapsMenu.SetTitle("Top 50 Rated Maps \n ");
+	g_hBestMapsMenu.SetTitle("%T\n ", "TopRatedMaps", LANG_SERVER);
 	
 	if(SQL_GetRowCount(hndl) != 0)
 	{
 		while(SQL_FetchRow(hndl))
 		{
-			int iMapRating = SQL_FetchInt(hndl, 0);
+			float fMapRating = SQL_FetchFloat(hndl, 0);
 			int iMapRates = SQL_FetchInt(hndl, 1);
 			char sMap[255];
 			SQL_FetchString(hndl, 2, sMap, sizeof(sMap))
 			
 			char buf[255];
-			Format(buf, sizeof(buf), "(%s%i) %s (%i Vote%s)", iMapRating > 0 ? "+" : "", iMapRating, sMap, iMapRates, iMapRates > 1 ? "s" : "");
+			Format(buf, sizeof(buf), "(%.1f) %s (%i %T)", fMapRating, sMap, iMapRates, iMapRates > 1 ? "Votes" : "Vote", LANG_SERVER);
 			
-			g_hBestMapsMenu.AddItem(sMap, buf, ITEMDRAW_DISABLED);
+			g_hBestMapsMenu.AddItem(sMap, buf, ITEMDRAW_DEFAULT);
 		}
 	}
 }
@@ -198,21 +192,21 @@ public void SQL_GetWorstMapRatings(Handle owner, Handle hndl, const char[] error
 	delete g_hWorstMapsMenu;
 	g_hWorstMapsMenu = new Menu(MapsMenuHandler);
 
-	g_hWorstMapsMenu.SetTitle("Worst 50 Rated Maps \n ");
+	g_hWorstMapsMenu.SetTitle("%T\n ", "WorstRatedMaps", LANG_SERVER);
 	
 	if(SQL_GetRowCount(hndl) != 0)
 	{
 		while(SQL_FetchRow(hndl))
 		{
-			int iMapRating = SQL_FetchInt(hndl, 0);
+			float fMapRating = SQL_FetchFloat(hndl, 0);
 			int iMapRates = SQL_FetchInt(hndl, 1);
 			char sMap[255];
 			SQL_FetchString(hndl, 2, sMap, sizeof(sMap))
 			
 			char buf[255];
-			Format(buf, sizeof(buf), "(%s%i) %s (%i Vote%s)", iMapRating > 0 ? "+" : "", iMapRating, sMap, iMapRates, iMapRates > 1 ? "s" : "");
+			Format(buf, sizeof(buf), "(%.1f) %s (%i %T)", fMapRating, sMap, iMapRates, iMapRates > 1 ? "Votes" : "Vote", LANG_SERVER);
 			
-			g_hWorstMapsMenu.AddItem(sMap, buf, ITEMDRAW_DISABLED);
+			g_hWorstMapsMenu.AddItem(sMap, buf, ITEMDRAW_DEFAULT);
 		}
 	}
 }
@@ -237,6 +231,11 @@ public void SQL_GetClientRating(Handle owner, Handle hndl, const char[] error, i
 			g_iRating[data] = SQL_FetchInt(hndl, 0);
 		}
 	}
+
+	LoadTranslations("shavit-common.phrases");
+	LoadTranslations("kawaii-maprating.phrases");
+
+	g_iEditRating[data] = g_iRating[data];
 }
 
 void GetClientFavorite(int client)
@@ -287,36 +286,38 @@ public void SQL_GetClientFavorites(Handle owner, Handle hndl, const char[] error
 {
 	Menu menu = new Menu(MapsMenuHandler);
 
-	menu.SetTitle("Favorite Maps \n ");
+	menu.SetTitle("%T\n ", "FavoriteMaps", data);
+	char sDisplay[PLATFORM_MAX_PATH];
 	
 	if(SQL_GetRowCount(hndl) != 0)
 	{
 		while(SQL_FetchRow(hndl))
 		{
-			char sMap[255];
-			SQL_FetchString(hndl, 0, sMap, sizeof(sMap))
+			SQL_FetchString(hndl, 0, sDisplay, sizeof(sDisplay))
 			
-			menu.AddItem(sMap, sMap, ITEMDRAW_DISABLED);
+			menu.AddItem(sDisplay, sDisplay, ITEMDRAW_DEFAULT);
 		}
 	}
 	else
-		menu.AddItem("none", "None found", ITEMDRAW_DISABLED);
+	{
+		FormatEx(sDisplay, sizeof(sDisplay), "%T", "NoneFound", data)
+		menu.AddItem("none", sDisplay, ITEMDRAW_DISABLED);		
+	}
 	
 	menu.Display(data, MENU_TIME_FOREVER);
 }
 
 public int MapsMenuHandler(Menu menu, MenuAction action, int param1, int param2)
 {
-	//TODO Create nominate forward to allow nominations from this menu
-	/*if(action == MenuAction_Select)
+	if(action == MenuAction_Select)
 	{
 		char sMap[PLATFORM_MAX_PATH];
 		menu.GetItem(param2, sMap, sizeof(sMap));
 
-		Nominate(param1, sMap);
-	}*/
+		FakeClientCommand(param1, "sm_nominate %s", sMap);
+	}
 
-	return Plugin_Handled;
+	return 0;
 }
 
 public Action Command_Rate(int client, int args)
@@ -337,7 +338,9 @@ public Action Command_Favorite(int client, int args)
 
 	g_bFavorite[client] = !g_bFavorite[client];
 	SetClientFavorite(client);
-	Shavit_PrintToChat(client, "Map %s%s %shas been %s%s %s%s your %s!favorites", gS_ChatStrings.sVariable, g_sCurrentMap, gS_ChatStrings.sText, g_bFavorite[client] ? gS_ChatStrings.sVariable : gS_ChatStrings.sWarning, g_bFavorite[client] ? "added" : "removed", gS_ChatStrings.sText, g_bFavorite[client] ? "to" : "from", gS_ChatStrings.sVariable);
+	Shavit_PrintToChat(client, "%T", g_bFavorite[client] ? "MapFavoritesAdded" : "MapFavoritesRemoved", client,
+		gS_ChatStrings.sVariable, g_sCurrentMap, gS_ChatStrings.sText, g_bFavorite[client] ? gS_ChatStrings.sVariable : gS_ChatStrings.sWarning, gS_ChatStrings.sText, gS_ChatStrings.sVariable);
+	
 	return Plugin_Handled;
 }
 
@@ -345,35 +348,45 @@ public Action OpenRateMenu(int client, bool fromFinish)
 {
 	Panel hPanel = CreatePanel();
 	char sDisplay[128];
-	char s[8];
-	IntToString(g_iCurrentMapRates, s, sizeof(s));
 	
 	hPanel.SetTitle(g_sCurrentMap);
+
+	char sRating[16];
 	
-	FormatEx(sDisplay, sizeof(sDisplay), "Rating: %s%i %s%s%s%s \n \nIs this a good map?",
-						g_iCurrentMapRating > 0 ? "+" : "",
-						g_iCurrentMapRating,
-						g_iCurrentMapRates == 0 ? "" : "(",
-						g_iCurrentMapRates == 0 ? "" : s,
-						g_iCurrentMapRates == 0 ? "" : " Vote",
-						g_iCurrentMapRates == 0 ? "" : (g_iCurrentMapRates > 1 ? "s)" : ")"));
+	for (int i = 1; i <= 5; i++)
+	{
+		FormatEx(sRating, sizeof(sRating), "%s%s", sRating, i <= g_iEditRating[client] ? "★":"☆")
+	}
 	
+	if(g_iCurrentMapRates == 0)
+	{
+		FormatEx(sDisplay, sizeof(sDisplay), "%T", "NoRatesOnMap", client);	
+	}
+	else
+	{
+		FormatEx(sDisplay, sizeof(sDisplay), "%T: %.1f / 5.0 (%d %T)", 
+				"AvgRating", client, g_fCurrentMapAvgRating,
+				g_iCurrentMapRates, g_iCurrentMapRates > 1 ? "Votes":"Vote", client);		
+	}
+
+	FormatEx(sDisplay, sizeof(sDisplay), "%s\n \n%T\n%T: %s\n ", sDisplay, "RatingQuestion", client, "PlayerRating", client, sRating);		
+
 	hPanel.DrawItem(sDisplay, ITEMDRAW_RAWLINE);
-	
-	FormatEx(sDisplay, sizeof(sDisplay), "%sYes", fromFinish ? "" : (g_iRating[client] == 1 ? "[X] " : "[  ] "));
-	hPanel.DrawItem(sDisplay, g_iRating[client] == 1 ? ITEMDRAW_DISABLED : ITEMDRAW_CONTROL);
-	
-	FormatEx(sDisplay, sizeof(sDisplay), "%sNo", fromFinish ? "" : (g_iRating[client] == -1 ? "[X] " : "[  ] "));
-	hPanel.DrawItem(sDisplay, g_iRating[client] == -1 ? ITEMDRAW_DISABLED : ITEMDRAW_CONTROL);
+
+	FormatEx(sDisplay, sizeof(sDisplay), "%T", "CommitRating", client);
+	hPanel.DrawItem(sDisplay, (g_iEditRating[client] == 0 || g_iEditRating[client] == g_iRating[client]) ? ITEMDRAW_DISABLED : ITEMDRAW_CONTROL);
+
+	FormatEx(sDisplay, sizeof(sDisplay), "%T", "ChangeRating", client);
+	hPanel.DrawItem(sDisplay);
 	
 	hPanel.DrawItem(" ", ITEMDRAW_RAWLINE);
 	
-	FormatEx(sDisplay, sizeof(sDisplay), "%sAdd to !favorites", g_bFavorite[client] == true ? "[X] " : "[  ] ");
+	FormatEx(sDisplay, sizeof(sDisplay), "[%T] %T", g_bFavorite[client] == true ? "ItemEnabled" : "ItemDisabled", client, "AddToFavorites", client);
 	hPanel.DrawItem(sDisplay, ITEMDRAW_CONTROL);
 	
 	hPanel.DrawItem(" ", ITEMDRAW_RAWLINE);
 	
-	FormatEx(sDisplay, sizeof(sDisplay), "%sOpen !rate menu on unrated map finish", g_bDisableRating[client] ? "[  ] " : "[X] ");
+	FormatEx(sDisplay, sizeof(sDisplay), "[%T] %T", !g_bDisableRating[client] ?  "ItemEnabled" : "ItemDisabled", client, "OpenRateMenuOnFinish", client);
 	hPanel.DrawItem(sDisplay, ITEMDRAW_CONTROL);
 	
 	hPanel.DrawItem(" ", ITEMDRAW_RAWLINE);
@@ -417,8 +430,9 @@ public int RateMenuHandler(Handle hPanel, MenuAction action, int client, int par
 					if(IsValidClient(client))
 					{
 						EmitSoundToClient(client, "buttons/button14.wav");
-						g_iRating[client] = 1;
 						SetClientRating(client);
+
+						OpenRateMenu(client, false);
 					}
 				}
 				case 2:
@@ -426,8 +440,11 @@ public int RateMenuHandler(Handle hPanel, MenuAction action, int client, int par
 					if(IsValidClient(client))
 					{
 						EmitSoundToClient(client, "buttons/button14.wav");
-						g_iRating[client] = -1;
-						SetClientRating(client);
+						
+						if(++g_iEditRating[client] > 5)
+							g_iEditRating[client] = 1;
+						
+						OpenRateMenu(client, false);
 					}
 				}
 				case 3:
@@ -463,7 +480,8 @@ public int RateMenuHandler(Handle hPanel, MenuAction action, int client, int par
 			CloseHandle(hPanel);
 		}
 	}
-	return Plugin_Handled;
+
+	return 0;
 }
 
 public Action Shavit_OnFinishMessage(int client, bool &everyone, timer_snapshot_t snapshot, int overwrite, int rank, char[] message, int maxlen)
@@ -477,11 +495,20 @@ public Action Shavit_OnFinishMessage(int client, bool &everyone, timer_snapshot_
 
 void SetClientRating(int client)
 {
+	int iFirstRate = g_iRating[client] <= 0 ? 1:0;
+	float fRateDiff = float(g_iEditRating[client] - g_iRating[client]);
+
+	g_iRating[client] = g_iEditRating[client];
+
+	g_fCurrentMapAvgRating = ((g_fCurrentMapAvgRating * float(g_iCurrentMapRates)) + fRateDiff) / float(g_iCurrentMapRates + iFirstRate);
+	g_iCurrentMapRates += iFirstRate;
+
 	int iSteamID = GetSteamAccountID(client);
 	char Query[500];
 	Format(Query, sizeof(Query), "INSERT INTO ratings (map, auth, rating) VALUES('%s', %i, %i) ON DUPLICATE KEY UPDATE rating = VALUES(rating);", g_sCurrentMap, iSteamID, g_iRating[client]);
 	SQL_TQuery(g_hRatingDB, SQL_ErrorCheckCallBack, Query);
-	Shavit_PrintToChat(client, "Thanks for rating the map! Change your rating with %s!rate", gS_ChatStrings.sVariable);
+
+	Shavit_PrintToChat(client, "%T", "RatingThanks", client, gS_ChatStrings.sVariable);
 	GetCurrentMapRating();
 	GetMapRatings();
 }
