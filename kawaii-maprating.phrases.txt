@@ -1,0 +1,92 @@
+"Phrases"
+{
+	"FavoriteMaps"
+	{
+		"en"		"Favorite Maps"
+	}
+
+	"NoneFound"
+	{
+		"en"		"None Found"
+	}
+
+	"AvgRating"
+	{
+		"en"		"Avg Rating"
+	}
+
+	"Votes"
+	{
+		"en"		"Votes"
+	}
+
+	"Vote"
+	{
+		"en"		"Vote"
+	}
+
+	"NoRatesOnMap"
+	{
+		"en"		"No rate on current map"
+	}
+
+	"RatingQuestion"
+	{
+		"en"		"Do you like this map?"
+	}
+
+	"AddToFavorites"
+	{
+		"en"		"Add to !favorites"
+	}
+
+	"OpenRateMenuOnFinish"
+	{
+		"en"		"Open !rate menu on unrated map finish"
+	}
+
+	"MapFavoritesAdded"
+	{
+		"#format"	"{1:s},{2:s},{3:s}{4:s},{5:s},{6:s}"
+		"en"		"Map {1}{2}{3} has been {4}added to{5} your {6}!favorites"
+	}
+
+	"MapFavoritesRemoved"
+	{
+		"#format"	"{1:s},{2:s},{3:s}{4:s},{5:s},{6:s}"
+		"en"		"Map {1}{2}{3} has been {4}removed from{5} your {6}!favorites"
+	}
+	"ChangeRating"
+	{
+		"en"		"Change Rating"
+	}
+	"CommitRating"
+	{
+		"en"		"Commit"
+	}
+	"WorstRatedMaps"
+	{
+		"en"		"Worst 50 Rated Maps"
+	}
+	"TopRatedMaps"
+	{
+		"en"		"Top 50 Rated Maps "
+	}
+	"RatingThanks"
+	{
+		"#format"	"{1:s}"
+		"en"		"Thanks for rating the map! Change your rating with {1}!rate"
+	}
+	"ItemEnabled"
+	{
+		"en"		"✓"
+	}
+	"ItemDisabled"
+	{
+		"en"		"　"
+	}
+	"PlayerRating"
+	{
+		"en"		"Your Rating"
+	}
+}
