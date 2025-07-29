@@ -62,9 +62,10 @@ public void OnPluginStart()
 	Shavit_OnChatConfigLoaded();
 	
 	InitRatingDB(g_hRatingDB);
-	
-	GetMapRatings();
-	
+
+	LoadTranslations("shavit-common.phrases");
+	LoadTranslations("kawaii-maprating.phrases");
+
 	g_bMapChooser = LibraryExists("shavit-mapchooser");
 	
 	g_aMapList = new ArrayList(ByteCountToCells(PLATFORM_MAX_PATH));
@@ -102,6 +103,7 @@ public void Shavit_OnChatConfigLoaded()
 public void OnMapStart()
 {
 	GetLowercaseMapName(g_sCurrentMap);
+	GetMapRatings();
 	GetCurrentMapRating();
 }
 
@@ -231,9 +233,6 @@ public void SQL_GetClientRating(Handle owner, Handle hndl, const char[] error, i
 			g_iRating[data] = SQL_FetchInt(hndl, 0);
 		}
 	}
-
-	LoadTranslations("shavit-common.phrases");
-	LoadTranslations("kawaii-maprating.phrases");
 
 	g_iEditRating[data] = g_iRating[data];
 }
@@ -509,7 +508,7 @@ void SetClientRating(int client)
 	SQL_TQuery(g_hRatingDB, SQL_ErrorCheckCallBack, Query);
 
 	Shavit_PrintToChat(client, "%T", "RatingThanks", client, gS_ChatStrings.sVariable);
-	GetCurrentMapRating();
+	
 	GetMapRatings();
 }
 
