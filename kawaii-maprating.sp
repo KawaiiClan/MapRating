@@ -188,7 +188,7 @@ public void SQL_GetBestMapRatings(Handle owner, Handle hndl, const char[] error,
 			char buf[255];
 			Format(buf, sizeof(buf), "(%s%i) %s (%i Vote%s)", iMapRating > 0 ? "+" : "", iMapRating, sMap, iMapRates, iMapRates > 1 ? "s" : "");
 			
-			g_hBestMapsMenu.AddItem(sMap, buf, ITEMDRAW_DISABLED);
+			g_hBestMapsMenu.AddItem(sMap, buf, StrEqual(sMap, g_sCurrentMap)?ITEMDRAW_DISABLED:ITEMDRAW_DEFAULT);
 		}
 	}
 }
@@ -212,7 +212,7 @@ public void SQL_GetWorstMapRatings(Handle owner, Handle hndl, const char[] error
 			char buf[255];
 			Format(buf, sizeof(buf), "(%s%i) %s (%i Vote%s)", iMapRating > 0 ? "+" : "", iMapRating, sMap, iMapRates, iMapRates > 1 ? "s" : "");
 			
-			g_hWorstMapsMenu.AddItem(sMap, buf, ITEMDRAW_DISABLED);
+			g_hWorstMapsMenu.AddItem(sMap, buf, StrEqual(sMap, g_sCurrentMap)?ITEMDRAW_DISABLED:ITEMDRAW_DEFAULT);
 		}
 	}
 }
@@ -296,7 +296,7 @@ public void SQL_GetClientFavorites(Handle owner, Handle hndl, const char[] error
 			char sMap[255];
 			SQL_FetchString(hndl, 0, sMap, sizeof(sMap))
 			
-			menu.AddItem(sMap, sMap, ITEMDRAW_DISABLED);
+			menu.AddItem(sMap, sMap, StrEqual(sMap, g_sCurrentMap)?ITEMDRAW_DISABLED:ITEMDRAW_DEFAULT);
 		}
 	}
 	else
@@ -307,14 +307,12 @@ public void SQL_GetClientFavorites(Handle owner, Handle hndl, const char[] error
 
 public int MapsMenuHandler(Menu menu, MenuAction action, int param1, int param2)
 {
-	//TODO Create nominate forward to allow nominations from this menu
-	/*if(action == MenuAction_Select)
+	if(action == MenuAction_Select)
 	{
 		char sMap[PLATFORM_MAX_PATH];
 		menu.GetItem(param2, sMap, sizeof(sMap));
-
-		Nominate(param1, sMap);
-	}*/
+		FakeClientCommand(param1, "sm_nominate %s", sMap);
+	}
 
 	return Plugin_Handled;
 }
